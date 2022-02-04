@@ -96,6 +96,13 @@ class LeggedRobot(Robot):
         self.__add_left_leg()
         self.__add_right_leg()
 
+    def __switch_foot__(self, process, number_step):
+        index = np.empty(number_step, bool)
+        index[::2] = False
+        index[1::2] = True
+        index = np.resize(index, (4, number_step)).T.ravel()
+        process[1, index], process[2, index] = process[2, index], process[1, index]
+
     def __constructing_x_process(self, number_step, step_size=0.5):
         process = np.empty((3, number_step * 4 + 2))
 
@@ -111,6 +118,7 @@ class LeggedRobot(Robot):
         process[0, 2::4] = (process[1, 2::4] + process[2, 2::4]) / 2
         process[0, 3::4] = process[2, 3::4]
 
+        self.__switch_foot__(process[:, :-2], number_step)
         return process
 
     def __calculate_max_rise(self, step_size):
@@ -133,6 +141,7 @@ class LeggedRobot(Robot):
         process[1, 3::4] = max_rise
         process[2, 1:-1:4] = max_rise
 
+        self.__switch_foot__(process[:, :-2], number_step)
         return process
 
     def move_step(self, number_step, step_size=0.5, speed=1):
