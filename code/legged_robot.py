@@ -1,7 +1,12 @@
+import itertools
+import time
+
 import eigenpy
 import numpy as np
 import pinocchio as pin
+from scipy.interpolate import PchipInterpolator
 
+from inverse_kinematics_solver import InverseKinematics
 from robot import Robot
 
 eigenpy.switchToNumpyArray()
@@ -89,7 +94,93 @@ class LeggedRobot(Robot):
         self.__add_left_leg()
         self.__add_right_leg()
 
+    def __constructing_x_process(self, number_step, step_size=0.5):
+        process = np.empty((3, number_step * 4 + 2))
+
+        process[1, :-2] = np.repeat(np.arange(0, number_step), 4) * step_size
+        process[1, -2:] = number_step * step_size
+
+        process[2, 1:-1] = np.repeat(np.arange(1, number_step + 1), 4) * step_size
+        process[2, 0] = 0
+        process[2, -1] = number_step * step_size
+
+        process[0, ::4] = process[1, ::4]
+        process[0, 1::4] = process[0, ::4]
+        process[0, 2::4] = (process[1, 2::4] + process[2, 2::4]) / 2
+        process[0, 3::4] = process[2, 3::4]
+
+        return process
+
+    def __calculate_max_rise(self, step_size):
+        return self.upperleg_len * (
+            1 - np.cos(np.arcsin(step_size / self.upperleg_len))
+        )
+
+    def __calculate_min_waist(self, step_size):
+        return (
+            np.sqrt(self.upperleg_len**2 - (step_size / 2) ** 2) - self.upperleg_len
+        )
+
+    def __constructing_z_process(self, number_step, step_size=0.5):
+        max_rise = self.__calculate_max_rise(step_size)
+        min_waist = self.__calculate_min_waist(step_size)
+
+        process = np.zeros((3, number_step * 4 + 2))
+
+        process[0, 2::4] = min_waist
+        process[1, 3::4] = max_rise
+        process[2, 1:-1:4] = max_rise
+
+        return process
+
+    def move_step(self, number_step, step_size=0.5, speed=1):
+        process = np.vstack(
+            [
+                self.__constructing_x_process(number_step, step_size),
+                self.__constructing_z_process(number_step, step_size),
+            ]
+        )
+        times = np.arange(0, np.shape(process)[1]) * 1 / speed
+        interp = [None] * np.shape(process)[0]
+        joint_names = ("waist", "left_foot", "right_foot")
+        for i, (joint_process, joint_name) in enumerate(
+            zip(process, itertools.cycle(joint_names))
+        ):
+            axis = 0 if i <= 2 else 2
+            interp[i] = PchipInterpolator(
+                times,
+                joint_process
+                + self.data.oMi[getattr(self, joint_name).id].translation[axis],
+            )
+
+        invk = InverseKinematics(self)
+        invk.add_joint("waist", rotation=False)
+        invk.add_joint("left_knee", translation=False)
+        invk.add_joint("right_knee", translation=False)
+        invk.add_joint("left_foot")
+        invk.add_joint("right_foot")
+
+        now = time.time()
+        past = now
+        total_time = 0
+
+        while total_time <= times[np.size(times) - 2]:
+            now = time.time()
+            delta_time = now - past
+            past = now
+            total_time += delta_time
+
+            for i, (joint_process, joint_name) in enumerate(
+                zip(process, itertools.cycle(joint_names))
+            ):
+                axis = 0 if i <= 2 else 2
+                getattr(invk, joint_name).translation[axis] = interp[i](total_time)
+
+            q_opt = invk.solve(invk.q)
+            self.move_with_velocity(q_opt)
+
 
 if __name__ == "__main__":
     legged_robot = LeggedRobot()
     legged_robot.init_for_demo()
+    legged_robot.move_step(5, step_size=0.3, speed=7.5)
