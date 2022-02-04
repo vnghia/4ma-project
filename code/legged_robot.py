@@ -29,6 +29,8 @@ class LeggedRobot(Robot):
         self.left_foot = None
         self.right_foot = None
 
+        self.invk = None
+
     def __add_body(self):
         self.add_joint(
             "body",
@@ -153,12 +155,14 @@ class LeggedRobot(Robot):
                 + self.data.oMi[getattr(self, joint_name).id].translation[axis],
             )
 
-        invk = InverseKinematics(self)
-        invk.add_joint("waist", rotation=False)
-        invk.add_joint("left_knee", translation=False)
-        invk.add_joint("right_knee", translation=False)
-        invk.add_joint("left_foot")
-        invk.add_joint("right_foot")
+        if not self.invk:
+            invk = InverseKinematics(self)
+            invk.add_joint("waist", rotation=False)
+            invk.add_joint("left_knee", translation=False)
+            invk.add_joint("right_knee", translation=False)
+            invk.add_joint("left_foot")
+            invk.add_joint("right_foot")
+            self.invk = invk
 
         now = time.time()
         past = now
@@ -174,9 +178,9 @@ class LeggedRobot(Robot):
                 zip(process, itertools.cycle(joint_names))
             ):
                 axis = 0 if i <= 2 else 2
-                getattr(invk, joint_name).translation[axis] = interp[i](total_time)
+                getattr(self.invk, joint_name).translation[axis] = interp[i](total_time)
 
-            q_opt = invk.solve(invk.q)
+            q_opt = self.invk.solve(self.invk.q)
             self.move_with_velocity(q_opt)
 
 
