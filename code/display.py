@@ -1,4 +1,6 @@
 import os
+import time
+from contextlib import contextmanager
 
 import pinocchio as pin
 from gepetto import corbaserver
@@ -22,6 +24,16 @@ class Display:
         # (Re)create our root scene
         self.gui.createSceneWithFloor(self.root_scene)
         self.gui.addSceneToWindow(self.root_scene, self.window_id)
+
+    @contextmanager
+    def capture(self, fname, extension="png"):
+        try:
+            self.gui.startCapture(self.window_id, fname, extension)
+            yield
+        finally:
+            # Wait for 0.1 second to make sure that all frames are refreshed and captured.
+            time.sleep(0.1)
+            self.gui.stopCapture(self.window_id)
 
     def no_floor(self):
         # Turn off the rendering of the floor

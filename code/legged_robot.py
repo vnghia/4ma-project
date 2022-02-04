@@ -1,4 +1,5 @@
 import itertools
+import sys
 import time
 
 import eigenpy
@@ -196,4 +197,8 @@ class LeggedRobot(Robot):
 if __name__ == "__main__":
     legged_robot = LeggedRobot()
     legged_robot.init_for_demo()
-    legged_robot.move_step(5, step_size=0.3, speed=7.5)
+    if len(sys.argv) == 2 and sys.argv[1] == "c":
+        with legged_robot.display.capture("legged_robot"):
+            legged_robot.move_step(5, step_size=0.3, speed=7.5)
+    else:
+        legged_robot.move_step(5, step_size=0.3, speed=7.5)
