@@ -49,25 +49,25 @@ class LeggedRobot(Robot):
             f"{prefix}_hip",
             parent=self.waist,
             joint_models=[pin.JointModelRX(), pin.JointModelRY(), pin.JointModelRZ()],
+            placement=placement,
             box_name=f"{prefix}_upperleg",
             box_z=self.upperleg_len,
-            placement=placement,
             box_placement=pin.XYZQUATToSE3((0, 0, -self.upperleg_len / 2, 0, 0, 0, 1)),
         ).add_joint(
             f"{prefix}_knee",
             joint_models=[pin.JointModelRY()],
+            placement=pin.XYZQUATToSE3((0, 0, -self.upperleg_len, 0, 0, 0, 1)),
             box_name=f"{prefix}_lowerleg",
             box_z=self.lowerleg_len,
-            placement=pin.XYZQUATToSE3((0, 0, -self.upperleg_len, 0, 0, 0, 1)),
             box_placement=pin.XYZQUATToSE3((0, 0, -self.lowerleg_len / 2, 0, 0, 0, 1)),
         ).add_joint(
             f"{prefix}_ankle",
             joint_models=[pin.JointModelRY(), pin.JointModelRZ()],
+            placement=pin.XYZQUATToSE3((0, 0, -self.lowerleg_len, 0, 0, 0, 1)),
             box_name=f"{prefix}_foot",
             box_x=self.foot_size[0],
             box_y=self.foot_size[1],
             box_z=self.foot_size[2],
-            placement=pin.XYZQUATToSE3((0, 0, -self.lowerleg_len, 0, 0, 0, 1)),
             box_placement=pin.XYZQUATToSE3(
                 (self.foot_fore, 0, -self.foot_size[2] / 2, 0, 0, 0, 1)
             ),
