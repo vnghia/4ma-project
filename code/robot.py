@@ -200,12 +200,17 @@ class Robot(pin.RobotWrapper):
     def __init_for_demo__(self):
         self.add_joint("joint", box_z=1)
 
-    def rebuildData(self, update_kinematics=True):
-        super().rebuildData()
+    def rebuildData(self):
+        self.data, self.collision_data, self.visual_data = pin.createDatas(
+            self.model, self.collision_model, self.visual_model
+        )
+
+        self.viz.data = self.data
+        self.viz.collision_data = self.collision_data
+        self.viz.visual_data = self.visual_data
+
         self.q0 = pin.neutral(self.model)
         self.loadViewerModel()
-        if update_kinematics:
-            self.forwardKinematics(self.q0)
 
     def init_for_demo(self, refresh_display=True):
         if not self.nq:
