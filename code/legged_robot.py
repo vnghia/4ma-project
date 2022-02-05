@@ -51,15 +51,19 @@ class LeggedRobot(Robot):
             joint_models=[pin.JointModelRX(), pin.JointModelRY(), pin.JointModelRZ()],
             placement=placement,
             box_name=f"{prefix}_upperleg",
-            box_z=self.upperleg_len,
-            box_placement=pin.XYZQUATToSE3((0, 0, -self.upperleg_len / 2, 0, 0, 0, 1)),
+            cylinder_z=self.upperleg_len,
+            cylinder_placement=pin.XYZQUATToSE3(
+                (0, 0, -self.upperleg_len / 2, 0, 0, 0, 1)
+            ),
         ).add_joint(
             f"{prefix}_knee",
             joint_models=[pin.JointModelRY()],
             placement=pin.XYZQUATToSE3((0, 0, -self.upperleg_len, 0, 0, 0, 1)),
             box_name=f"{prefix}_lowerleg",
-            box_z=self.lowerleg_len,
-            box_placement=pin.XYZQUATToSE3((0, 0, -self.lowerleg_len / 2, 0, 0, 0, 1)),
+            cylinder_z=self.lowerleg_len,
+            cylinder_placement=pin.XYZQUATToSE3(
+                (0, 0, -self.lowerleg_len / 2, 0, 0, 0, 1)
+            ),
         ).add_joint(
             f"{prefix}_ankle",
             joint_models=[pin.JointModelRY(), pin.JointModelRZ()],

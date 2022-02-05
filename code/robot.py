@@ -89,6 +89,52 @@ class Joint:
             )
             self.geo_ids.append(geo_model.addGeometryObject(self.box))
 
+        self.cylinder_radius = kwargs.get("cylinder_radius", self.sphere_radius * 0.75)
+        self.cylinder_z = kwargs.get("cylinder_z", 0)
+        self.cylinder = None
+        if self.cylinder_radius and self.cylinder_z:
+            if self.box:
+                raise ValueError("Can only add either box, cylinder or capsule !")
+            self.cylinder_name = kwargs.get("cylinder_name", f"cylinder_{name}")
+            self.cylinder_color = kwargs.get("cylinder_color", WHITE)
+            # Same as box
+            self.cylinder_placement = kwargs.get(
+                "cylinder_placement",
+                pin.SE3(np.eye(3), np.array([0, 0, self.cylinder_z / 2])),
+            )
+            self.cylinder = self.__create_geo_obj(
+                self.cylinder_name,
+                self.cylinder_placement,
+                self.cylinder_color,
+                hppfcl.Cylinder,
+                self.cylinder_radius,
+                self.cylinder_z,
+            )
+            self.geo_ids.append(geo_model.addGeometryObject(self.cylinder))
+
+        self.capsule_radius = kwargs.get("capsule_radius", self.sphere_radius * 0.75)
+        self.capsule_z = kwargs.get("capsule_z", 0)
+        self.capsule = None
+        if self.capsule_radius and self.capsule_z:
+            if self.box or self.cylinder:
+                raise ValueError("Can only add either box, cylinder or capsule !")
+            self.capsule_name = kwargs.get("capsule_name", f"capsule_{name}")
+            self.capsule_color = kwargs.get("capsule_color", WHITE)
+            # Same as box
+            self.capsule_placement = kwargs.get(
+                "capsule_placement",
+                pin.SE3(np.eye(3), np.array([0, 0, self.capsule_z / 2])),
+            )
+            self.capsule = self.__create_geo_obj(
+                self.capsule_name,
+                self.capsule_placement,
+                self.capsule_color,
+                hppfcl.Capsule,
+                self.capsule_radius,
+                self.capsule_z,
+            )
+            self.geo_ids.append(geo_model.addGeometryObject(self.capsule))
+
     def __create_geo_obj(self, name, placement, color, factory, *nargs, **kwargs):
         return pin.GeometryObject(
             name=name,
@@ -105,7 +151,14 @@ class Joint:
         if parent is None:
             return pin.SE3.Identity()
         else:
-            return pin.SE3(np.eye(3), np.array([0, 0, parent.box_z]))
+            parent_z = 0
+            if parent.box_z != 0:
+                parent_z = parent.box_z
+            elif parent.cylinder_z != 0:
+                parent_z = parent.cylinder_z
+            else:
+                parent_z = parent.capsule_z
+            return pin.SE3(np.eye(3), np.array([0, 0, parent_z]))
 
 
 class Robot(pin.RobotWrapper):
