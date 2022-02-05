@@ -1,10 +1,13 @@
 import time
+import warnings
 from contextlib import contextmanager
 
 import eigenpy
 import hppfcl
 import numpy as np
 import pinocchio as pin
+
+warnings.filterwarnings("ignore")
 
 eigenpy.switchToNumpyArray()
 
@@ -162,7 +165,7 @@ class Joint:
 
 
 class Robot(pin.RobotWrapper):
-    def __init__(self, root_id=0, show_origin=True):
+    def __init__(self, root_id=0, show_origin=True, add_plane=True):
         model = pin.Model()
         collision_model = pin.GeometryModel()
         visual_model = pin.GeometryModel()
@@ -173,6 +176,18 @@ class Robot(pin.RobotWrapper):
         self.root_id = root_id
         if show_origin:
             self.viewer.gui.addXYZaxis("world/origin", np.zeros(4).tolist(), 0.025, 1.5)
+
+        self.plane_name = "plane"
+        self.plane = None
+        self.plane_geo_id = None
+        if add_plane:
+            self.plane = pin.GeometryObject(
+                name=self.plane_name,
+                parent_joint=self.root_id,
+                collision_geometry=pin.hppfcl.Plane(0, 0, 1, 0),
+                placement=pin.SE3.Identity(),
+            )
+            self.plane_geo_id = self.collision_model.addGeometryObject(self.plane)
 
     def add_joint(self, name, geo_model=None, parent=None, **kwargs):
         parent = parent or (self.joints[-1] if self.joints else None)
