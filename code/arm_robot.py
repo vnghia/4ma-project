@@ -12,7 +12,7 @@ eigenpy.switchToNumpyArray()
 class ArmRobot(Robot):
     def __init_for_demo__(self):
         for i in range(3):
-            self.add_joint(str(i))
+            self.add_joint(str(i), box_z=1)
 
     def demo(self, dt=1e-3):
         for j in range(self.model.nv):
@@ -21,11 +21,11 @@ class ArmRobot(Robot):
             q = pin.neutral(self.model)
             for _ in range(1000):
                 q += v * dt
-                self.move_with_velocity(q)
+                self.display(q)
                 time.sleep(dt)
             for _ in range(1000):
                 q -= v * dt
-                self.move_with_velocity(q)
+                self.display(q)
                 time.sleep(dt)
 
 

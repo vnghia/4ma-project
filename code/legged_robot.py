@@ -14,8 +14,8 @@ eigenpy.switchToNumpyArray()
 
 
 class LeggedRobot(Robot):
-    def __init__(self, root_id=0, prefix=""):
-        super().__init__(root_id, prefix)
+    def __init__(self, root_id=0, show_origin=True):
+        super().__init__(root_id, show_origin)
         self.upperleg_len = 1
         self.lowerleg_len = 1
         self.leg_distance = 0.5
@@ -49,7 +49,6 @@ class LeggedRobot(Robot):
             f"{prefix}_hip",
             parent=self.waist,
             joint_models=[pin.JointModelRX(), pin.JointModelRY(), pin.JointModelRZ()],
-            sphere_name=f"{prefix}_hip",
             box_name=f"{prefix}_upperleg",
             box_z=self.upperleg_len,
             placement=placement,
@@ -57,7 +56,6 @@ class LeggedRobot(Robot):
         ).add_joint(
             f"{prefix}_knee",
             joint_models=[pin.JointModelRY()],
-            sphere_name=f"{prefix}_knee",
             box_name=f"{prefix}_lowerleg",
             box_z=self.lowerleg_len,
             placement=pin.XYZQUATToSE3((0, 0, -self.upperleg_len, 0, 0, 0, 1)),
@@ -65,7 +63,6 @@ class LeggedRobot(Robot):
         ).add_joint(
             f"{prefix}_ankle",
             joint_models=[pin.JointModelRY(), pin.JointModelRZ()],
-            sphere_name=f"{prefix}_ankle",
             box_name=f"{prefix}_foot",
             box_x=self.foot_size[0],
             box_y=self.foot_size[1],
@@ -170,8 +167,8 @@ class LeggedRobot(Robot):
             invk.add_joint("waist", rotation=False)
             invk.add_joint("left_knee", translation=False)
             invk.add_joint("right_knee", translation=False)
-            invk.add_joint("left_foot")
-            invk.add_joint("right_foot")
+            invk.add_joint("left_foot", rotation=False)
+            invk.add_joint("right_foot", rotation=False)
             self.invk = invk
 
         now = time.time()
@@ -191,14 +188,14 @@ class LeggedRobot(Robot):
                 getattr(self.invk, joint_name).translation[axis] = interp[i](total_time)
 
             q_opt = self.invk.solve(self.invk.q)
-            self.move_with_velocity(q_opt)
+            self.display(q_opt)
 
 
 if __name__ == "__main__":
     legged_robot = LeggedRobot()
     legged_robot.init_for_demo()
     if len(sys.argv) == 2 and sys.argv[1] == "c":
-        with legged_robot.display.capture("legged_robot"):
+        with legged_robot.capture("legged_robot"):
             legged_robot.move_step(5, step_size=0.3, speed=7.5)
     else:
         legged_robot.move_step(5, step_size=0.3, speed=7.5)
