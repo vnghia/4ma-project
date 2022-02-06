@@ -6,6 +6,7 @@ import eigenpy
 import hppfcl
 import numpy as np
 import pinocchio as pin
+from pinocchio.visualize import GepettoVisualizer, MeshcatVisualizer
 
 warnings.filterwarnings("ignore")
 
@@ -170,12 +171,10 @@ class Robot(pin.RobotWrapper):
         collision_model = pin.GeometryModel()
         visual_model = pin.GeometryModel()
         super().__init__(model, collision_model, visual_model, False)
-        self.initViewer()
+        self.__init_viewer__(show_origin)
 
         self.joints = []
         self.root_id = root_id
-        if show_origin:
-            self.viewer.gui.addXYZaxis("world/origin", np.zeros(4).tolist(), 0.025, 1.5)
 
         self.plane_name = "plane"
         self.plane = None
@@ -188,6 +187,62 @@ class Robot(pin.RobotWrapper):
                 placement=pin.SE3.Identity(),
             )
             self.plane_geo_id = self.collision_model.addGeometryObject(self.plane)
+
+    def __init_viewer__(self, show_origin=True):
+        viewer = None
+        viz = None
+        try:
+            import meshcat
+
+            viz = MeshcatVisualizer
+
+            class Visualizer(meshcat.Visualizer):
+                Record = {"frame": -1, "animation": None}
+
+                def set_transform(self, matrix=np.eye(4)):
+                    animation = self.Record["animation"]
+                    if not animation:
+                        super().set_transform(matrix)
+                    else:
+                        frame = self.Record["frame"]
+                        with animation.at_frame(self, frame) as f:
+                            f.set_transform(matrix)
+                        self.Record["frame"] = frame + 1
+
+                def __getitem__(self, path):
+                    vis = Visualizer(window=self.window)
+                    vis.path = path
+                    return vis
+
+                def startCapture(self, rate=30):
+                    self.Record["frame"] = 0
+                    self.Record["animation"] = meshcat.animation.Animation(
+                        default_framerate=rate
+                    )
+
+                def stopCapture(self):
+                    self.set_animation(self.Record["animation"], play=False)
+                    self.Record["frame"] = -1
+                    self.Record["animation"] = None
+
+            viewer = Visualizer(zmq_url="tcp://localhost:6000")
+
+        except ImportError:
+            viz = GepettoVisualizer
+
+        self.viz = viz(
+            self.model,
+            self.collision_model,
+            self.visual_model,
+            False,
+            self.data,
+            self.collision_data,
+            self.visual_data,
+        )
+        self.viz.initViewer(viewer=viewer)
+        self.viz.clean()
+        if show_origin and isinstance(self.viz, GepettoVisualizer):
+            self.viewer.gui.addXYZaxis("world/origin", np.zeros(4).tolist(), 0.025, 1.5)
 
     def add_joint(self, name, geo_model=None, parent=None, **kwargs):
         parent = parent or (self.joints[-1] if self.joints else None)
@@ -220,14 +275,23 @@ class Robot(pin.RobotWrapper):
                 self.display(self.q0)
 
     @contextmanager
-    def capture(self, fname, extension="png"):
-        try:
-            self.viewer.gui.startCapture(self.viz.windowID, fname, extension)
-            yield
-        finally:
-            # Wait for 0.1 second to make sure that all frames are refreshed and captured.
-            time.sleep(0.1)
-            self.viewer.gui.stopCapture(self.viz.windowID)
+    def capture(self, fname=None, rate=30, extension="png"):
+        if isinstance(self.viz, MeshcatVisualizer):
+            try:
+                self.viewer.startCapture(rate)
+                yield
+            finally:
+                self.viewer.stopCapture()
+
+        elif isinstance(self.viz, GepettoVisualizer):
+            fname = fname or self.__class__.__name__
+            try:
+                self.viewer.gui.startCapture(self.viz.windowID, fname, extension)
+                yield
+            finally:
+                # Wait for 0.1 second to make sure that all frames are refreshed and captured.
+                time.sleep(0.1)
+                self.viewer.gui.stopCapture(self.viz.windowID)
 
 
 if __name__ == "__main__":
