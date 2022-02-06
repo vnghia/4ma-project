@@ -166,11 +166,12 @@ class Joint:
 
 
 class Robot(pin.RobotWrapper):
-    def __init__(self, root_id=0, show_origin=True, add_plane=True):
+    def __init__(self, root_id=0, show_origin=True, add_plane=True, prefix=""):
         model = pin.Model()
         collision_model = pin.GeometryModel()
         visual_model = pin.GeometryModel()
         super().__init__(model, collision_model, visual_model, False)
+        self.prefix = prefix or self.__class__.__name__
         self.__init_viewer__(show_origin)
 
         self.joints = []
@@ -226,6 +227,7 @@ class Robot(pin.RobotWrapper):
                     self.Record["animation"] = None
 
             viewer = Visualizer(zmq_url="tcp://localhost:6000")
+            viewer[self.prefix].delete()
 
         except ImportError:
             viz = GepettoVisualizer
@@ -240,7 +242,6 @@ class Robot(pin.RobotWrapper):
             self.visual_data,
         )
         self.viz.initViewer(viewer=viewer)
-        self.viz.clean()
         if show_origin and isinstance(self.viz, GepettoVisualizer):
             self.viewer.gui.addXYZaxis("world/origin", np.zeros(4).tolist(), 0.025, 1.5)
 
@@ -265,7 +266,7 @@ class Robot(pin.RobotWrapper):
         self.viz.visual_data = self.visual_data
 
         self.q0 = pin.neutral(self.model)
-        self.loadViewerModel()
+        self.loadViewerModel(rootNodeName=self.prefix)
 
     def init_for_demo(self, refresh_display=True):
         if not self.nq:
@@ -284,7 +285,7 @@ class Robot(pin.RobotWrapper):
                 self.viewer.stopCapture()
 
         elif isinstance(self.viz, GepettoVisualizer):
-            fname = fname or self.__class__.__name__
+            fname = fname or self.prefix
             try:
                 self.viewer.gui.startCapture(self.viz.windowID, fname, extension)
                 yield
