@@ -12,7 +12,7 @@ warnings.filterwarnings("ignore")
 
 eigenpy.switchToNumpyArray()
 
-RED = np.array([1, 0, 0, 1])
+RED = np.array([1, 0, 0, 0.9])
 WHITE = np.array([0.85, 0.85, 0.85, 0.85])
 
 
