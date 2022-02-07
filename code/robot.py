@@ -17,6 +17,8 @@ WHITE = np.array([0.85, 0.85, 0.85, 0.85])
 
 
 class Joint:
+    MeshLoader = hppfcl.CachedMeshLoader()
+
     def __init__(self, name, model, geo_model, parent=None, root_id=0, **kwargs):
         self.name = name
         self.joint_models = kwargs.get("joint_models", [pin.JointModelRX()])
@@ -98,7 +100,7 @@ class Joint:
         self.cylinder = None
         if self.cylinder_radius and self.cylinder_z:
             if self.box:
-                raise ValueError("Can only add either box, cylinder or capsule !")
+                raise ValueError("Can only add either box, cylinder, capsule or mesh !")
             self.cylinder_name = kwargs.get("cylinder_name", f"cylinder_{name}")
             self.cylinder_color = kwargs.get("cylinder_color", WHITE)
             # Same as box
@@ -121,7 +123,7 @@ class Joint:
         self.capsule = None
         if self.capsule_radius and self.capsule_z:
             if self.box or self.cylinder:
-                raise ValueError("Can only add either box, cylinder or capsule !")
+                raise ValueError("Can only add either box, cylinder, capsule or mesh !")
             self.capsule_name = kwargs.get("capsule_name", f"capsule_{name}")
             self.capsule_color = kwargs.get("capsule_color", WHITE)
             # Same as box
@@ -138,6 +140,28 @@ class Joint:
                 self.capsule_z,
             )
             self.geo_ids.append(geo_model.addGeometryObject(self.capsule))
+
+        self.mesh_path = kwargs.get("mesh_path", None)
+        self.mesh = None
+        if self.mesh_path:
+            if self.box or self.cylinder or self.capsule:
+                raise ValueError("Can only add either box, cylinder, capsule or mesh !")
+            self.mesh_name = kwargs.get("mesh_name", f"mesh_{name}")
+            self.mesh_scale = kwargs.get("mesh_scale", np.ones(3))
+            self.mesh_color = kwargs.get("mesh_color", np.ones(4))
+            # Same as box
+            self.mesh_placement = kwargs.get("mesh_placement", pin.SE3.Identity())
+            self.mesh = pin.GeometryObject(
+                self.mesh_name,
+                self.id,
+                self.MeshLoader.load(self.mesh_path, self.mesh_scale),
+                self.mesh_placement,
+                self.mesh_path,
+                self.mesh_scale,
+                False,
+                self.mesh_color,
+            )
+            self.geo_ids.append(geo_model.addGeometryObject(self.mesh))
 
     def __create_geo_obj(self, name, placement, color, factory, *nargs, **kwargs):
         return pin.GeometryObject(
