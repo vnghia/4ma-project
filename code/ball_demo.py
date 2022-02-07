@@ -53,6 +53,29 @@ class DropBall(Robot):
             if self.collision_data.collisionResults[0].isCollision():
                 break
 
+    def demo_integrate(self, speed=1):
+        self.displayCollisions(True)
+
+        a = self.model.gravity.linear[2:3]
+        q = self.q0
+
+        now = time.time()
+        past = now
+        total_time = 0
+
+        while True:
+            now = time.time()
+            delta_time = now - past
+            past = now
+            total_time += delta_time
+
+            q = pin.integrate(self.model, q, a * delta_time * speed)
+            self.display(q)
+
+            pin.computeCollisions(self.collision_model, self.collision_data, True)
+            if self.collision_data.collisionResults[0].isCollision():
+                break
+
 
 if __name__ == "__main__":
     dropball = DropBall()
@@ -60,6 +83,8 @@ if __name__ == "__main__":
     speed = 0.1
     if len(sys.argv) == 2 and sys.argv[1] == "c":
         with dropball.capture("dropball"):
+            dropball.demo_integrate(speed)
             dropball.demo(speed)
     else:
+        dropball.demo_integrate(speed)
         dropball.demo(speed)
