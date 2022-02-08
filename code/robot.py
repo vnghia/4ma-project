@@ -21,8 +21,8 @@ class Joint:
 
     def __init__(self, name, model, geo_model, parent=None, root_id=0, **kwargs):
         self.name = name
-        self.joint_models = kwargs.get("joint_models", [pin.JointModelRX()])
-        self.placement = kwargs.get("placement", self.__calculate_placement(parent))
+        self.joint_models = kwargs.get("joint_models") or [pin.JointModelRX()]
+        self.placement = kwargs.get("placement") or self.__calculate_placement(parent)
         self.ids = []
         self.geo_ids = []
         self.inertias = kwargs.get("inertias")
@@ -57,13 +57,13 @@ class Joint:
             model.appendBodyToJoint(self.ids[-1], inertia, pin.SE3.Identity())
         self.id = self.ids[-1]
 
-        self.sphere_radius = kwargs.get("sphere_radius", 0.1)
+        self.sphere_radius = kwargs.get("sphere_radius") or 0.1
         self.sphere = None
         if self.sphere_radius:
-            self.sphere_name = kwargs.get("sphere_name", self.name)
-            self.sphere_color = kwargs.get("sphere_color", RED)
+            self.sphere_name = kwargs.get("sphere_name") or self.name
+            self.sphere_color = kwargs.get("sphere_color") or RED
             # Placement of the geometry with respect to the joint frame
-            self.sphere_placement = kwargs.get("sphere_placement", pin.SE3.Identity())
+            self.sphere_placement = kwargs.get("sphere_placement") or pin.SE3.Identity()
             self.sphere = self.__create_geo_obj(
                 self.sphere_name,
                 self.sphere_placement,
@@ -73,16 +73,16 @@ class Joint:
             )
             self.geo_ids.append(geo_model.addGeometryObject(self.sphere))
 
-        self.box_x = kwargs.get("box_x", 0.1)
-        self.box_y = kwargs.get("box_y", 0.1)
-        self.box_z = kwargs.get("box_z", 0)
+        self.box_x = kwargs.get("box_x") or 0.1
+        self.box_y = kwargs.get("box_y") or 0.1
+        self.box_z = kwargs.get("box_z")
         self.box = None
         if self.box_x and self.box_y and self.box_z:
-            self.box_name = kwargs.get("box_name", f"box_{name}")
-            self.box_color = kwargs.get("box_color", WHITE)
+            self.box_name = kwargs.get("box_name") or f"box_{name}"
+            self.box_color = kwargs.get("box_color") or WHITE
             # Placement of the geometry with respect to the joint frame
-            self.box_placement = kwargs.get(
-                "box_placement", pin.SE3(np.eye(3), np.array([0, 0, self.box_z / 2]))
+            self.box_placement = kwargs.get("box_placement") or pin.SE3(
+                np.eye(3), np.array([0, 0, self.box_z / 2])
             )
             self.box = self.__create_geo_obj(
                 self.box_name,
@@ -95,18 +95,19 @@ class Joint:
             )
             self.geo_ids.append(geo_model.addGeometryObject(self.box))
 
-        self.cylinder_radius = kwargs.get("cylinder_radius", self.sphere_radius * 0.75)
-        self.cylinder_z = kwargs.get("cylinder_z", 0)
+        self.cylinder_radius = (
+            kwargs.get("cylinder_radius") or self.sphere_radius * 0.75
+        )
+        self.cylinder_z = kwargs.get("cylinder_z")
         self.cylinder = None
         if self.cylinder_radius and self.cylinder_z:
             if self.box:
                 raise ValueError("Can only add either box, cylinder, capsule or mesh !")
-            self.cylinder_name = kwargs.get("cylinder_name", f"cylinder_{name}")
-            self.cylinder_color = kwargs.get("cylinder_color", WHITE)
+            self.cylinder_name = kwargs.get("cylinder_name") or f"cylinder_{name}"
+            self.cylinder_color = kwargs.get("cylinder_color") or WHITE
             # Same as box
-            self.cylinder_placement = kwargs.get(
-                "cylinder_placement",
-                pin.SE3(np.eye(3), np.array([0, 0, self.cylinder_z / 2])),
+            self.cylinder_placement = kwargs.get("cylinder_placement") or pin.SE3(
+                np.eye(3), np.array([0, 0, self.cylinder_z / 2])
             )
             self.cylinder = self.__create_geo_obj(
                 self.cylinder_name,
@@ -118,18 +119,17 @@ class Joint:
             )
             self.geo_ids.append(geo_model.addGeometryObject(self.cylinder))
 
-        self.capsule_radius = kwargs.get("capsule_radius", self.sphere_radius * 0.75)
-        self.capsule_z = kwargs.get("capsule_z", 0)
+        self.capsule_radius = kwargs.get("capsule_radius") or self.sphere_radius * 0.75
+        self.capsule_z = kwargs.get("capsule_z")
         self.capsule = None
         if self.capsule_radius and self.capsule_z:
             if self.box or self.cylinder:
                 raise ValueError("Can only add either box, cylinder, capsule or mesh !")
-            self.capsule_name = kwargs.get("capsule_name", f"capsule_{name}")
-            self.capsule_color = kwargs.get("capsule_color", WHITE)
+            self.capsule_name = kwargs.get("capsule_name") or f"capsule_{name}"
+            self.capsule_color = kwargs.get("capsule_color") or WHITE
             # Same as box
-            self.capsule_placement = kwargs.get(
-                "capsule_placement",
-                pin.SE3(np.eye(3), np.array([0, 0, self.capsule_z / 2])),
+            self.capsule_placement = kwargs.get("capsule_placement") or pin.SE3(
+                np.eye(3), np.array([0, 0, self.capsule_z / 2])
             )
             self.capsule = self.__create_geo_obj(
                 self.capsule_name,
@@ -141,16 +141,16 @@ class Joint:
             )
             self.geo_ids.append(geo_model.addGeometryObject(self.capsule))
 
-        self.mesh_path = kwargs.get("mesh_path", None)
+        self.mesh_path = kwargs.get("mesh_path")
         self.mesh = None
         if self.mesh_path:
             if self.box or self.cylinder or self.capsule:
                 raise ValueError("Can only add either box, cylinder, capsule or mesh !")
-            self.mesh_name = kwargs.get("mesh_name", f"mesh_{name}")
-            self.mesh_scale = kwargs.get("mesh_scale", np.ones(3))
-            self.mesh_color = kwargs.get("mesh_color", np.ones(4))
+            self.mesh_name = kwargs.get("mesh_name") or f"mesh_{name}"
+            self.mesh_scale = kwargs.get("mesh_scale") or np.ones(3)
+            self.mesh_color = kwargs.get("mesh_color") or np.ones(4)
             # Same as box
-            self.mesh_placement = kwargs.get("mesh_placement", pin.SE3.Identity())
+            self.mesh_placement = kwargs.get("mesh_placement") or pin.SE3.Identity()
             self.mesh = pin.GeometryObject(
                 self.mesh_name,
                 self.id,
@@ -180,9 +180,9 @@ class Joint:
             return pin.SE3.Identity()
         else:
             parent_z = 0
-            if parent.box_z != 0:
+            if parent.box_z:
                 parent_z = parent.box_z
-            elif parent.cylinder_z != 0:
+            elif parent.cylinder_z:
                 parent_z = parent.cylinder_z
             else:
                 parent_z = parent.capsule_z
