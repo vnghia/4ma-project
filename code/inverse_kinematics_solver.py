@@ -9,10 +9,11 @@ eigenpy.switchToNumpyMatrix()
 
 
 class InverseKinematics:
-    def __init__(self, robot) -> None:
+    def __init__(self, robot, relative=False) -> None:
         self.robot = robot
         self.q = pin.neutral(self.robot.model)
         self.joint_names = {}
+        self.relative = relative
 
     def add_joint(self, joint_name, translation=True, rotation=True):
         if joint_name not in self.joint_names:
@@ -32,7 +33,12 @@ class InverseKinematics:
         error = 0
 
         for joint_name, joint_config in self.joint_names.items():
-            cur = self.robot.data.oMi[getattr(self.robot, joint_name).id]
+            cur_id = getattr(self.robot, joint_name).id
+            cur = (
+                self.robot.data.oMi[cur_id]
+                if self.relative
+                else self.robot.data.liMi[cur_id]
+            )
             ref = getattr(self, joint_name)
             if joint_config["translation"]:
                 error += np.sum((cur.translation - ref.translation) ** 2)
