@@ -15,7 +15,7 @@ class InverseKinematics:
         self.joint_names = {}
         self.relative = relative
 
-    def add_joint(self, joint_name, translation=True, rotation=True):
+    def add_joint(self, joint_name, translation=True, rotation=True, relative=None):
         if joint_name not in self.joint_names:
             setattr(
                 self,
@@ -25,6 +25,7 @@ class InverseKinematics:
             self.joint_names[joint_name] = {
                 "translation": translation,
                 "rotation": rotation,
+                "relative": self.relative if relative is None else relative,
             }
 
     def cost(self, q):
@@ -36,7 +37,7 @@ class InverseKinematics:
             cur_id = getattr(self.robot, joint_name).id
             cur = (
                 self.robot.data.oMi[cur_id]
-                if self.relative
+                if not joint_config["relative"]
                 else self.robot.data.liMi[cur_id]
             )
             ref = getattr(self, joint_name)
