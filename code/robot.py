@@ -1,3 +1,4 @@
+import sys
 import time
 import warnings
 from contextlib import contextmanager
@@ -217,6 +218,8 @@ class Robot(pin.RobotWrapper):
         viewer = None
         viz = None
         try:
+            if "Pinocchio" in sys.prefix:
+                raise ImportError
             import meshcat
 
             viz = MeshcatVisualizer

@@ -205,21 +205,24 @@ class ConstantAtlatl(Robot):
             self.display(q_opt)
 
     def draw_line(self):
-        from meshcat.geometry import LineSegments, PointsGeometry
+        try:
+            from meshcat.geometry import LineSegments, PointsGeometry
 
-        line = LineSegments(
-            PointsGeometry(
-                position=np.array(
-                    [
-                        [0, -100, self.const_z],
-                        [0, 100, self.const_z],
-                    ]
+            line = LineSegments(
+                PointsGeometry(
+                    position=np.array(
+                        [
+                            [0, -100, self.const_z],
+                            [0, 100, self.const_z],
+                        ]
+                    )
+                    .astype(np.float32)
+                    .T
                 )
-                .astype(np.float32)
-                .T
             )
-        )
-        self.viewer["line"].set_object(line)
+            self.viewer["line"].set_object(line)
+        except Exception:
+            return
 
 
 if __name__ == "__main__":
