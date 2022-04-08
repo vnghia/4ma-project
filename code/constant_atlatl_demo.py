@@ -35,10 +35,11 @@ class ConstantAtlatl(Robot):
         self.body_names = ["body", "upperarm", "lowerarm", "thrower", "atlatl"]
 
         self.joint_config = {
+            "wrist": {"sphere_end_radius": 0.1},
             "P": {
                 "cylinder_radius": 0.025,
-                "sphere_placement": pin.SE3(np.eye(3), np.array([0, -0.1, 0])),
-            }
+                "sphere_radius": 0,
+            },
         }
 
     def __init_for_demo__(self):

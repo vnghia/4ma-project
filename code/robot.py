@@ -58,7 +58,8 @@ class Joint:
             model.appendBodyToJoint(self.ids[-1], inertia, pin.SE3.Identity())
         self.id = self.ids[-1]
 
-        self.sphere_radius = kwargs.get("sphere_radius") or 0.1
+        sphere_radius = kwargs.get("sphere_radius")
+        self.sphere_radius = sphere_radius if sphere_radius is not None else 0.1
         self.sphere = None
         if self.sphere_radius:
             self.sphere_name = kwargs.get("sphere_name") or self.name
@@ -163,6 +164,24 @@ class Joint:
                 self.mesh_color,
             )
             self.geo_ids.append(geo_model.addGeometryObject(self.mesh))
+
+        self.sphere_end_radius = kwargs.get("sphere_end_radius") or 0
+        self.sphere_end = None
+        if self.sphere_end_radius:
+            self.sphere_end_name = kwargs.get("sphere_end_name") or f"sphere_end_{name}"
+            self.sphere_end_color = kwargs.get("sphere_end_color") or RED
+            # Placement of the geometry with respect to the joint frame
+            self.sphere_end_placement = kwargs.get(
+                "sphere_end_placement"
+            ) or self.__calculate_placement(self)
+            self.sphere_end = self.__create_geo_obj(
+                self.sphere_end_name,
+                self.sphere_end_placement,
+                self.sphere_end_color,
+                hppfcl.Sphere,
+                self.sphere_end_radius,
+            )
+            self.geo_ids.append(geo_model.addGeometryObject(self.sphere_end))
 
     def __create_geo_obj(self, name, placement, color, factory, *nargs, **kwargs):
         return pin.GeometryObject(
