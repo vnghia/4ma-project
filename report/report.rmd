@@ -1,0 +1,240 @@
+---
+title: "Digital simulation of the movement of an atlatl"
+author:
+  - Μapia
+  - VO Van Nghia
+  - PHAM Tuan Kiet
+abstract: |
+  One of the special weapons rarely  seen nowadays in television or newspapers is the atlatl, or simply a spear-thrower. Developed in Europe over 30 000 years ago and by the Native North-Americans tribes 12 000 years ago, the atlatl is the first true "weapon system" consisting of a projectile (the dart) and a launching device (the atlatl).
+
+  The project aims to simulate and optimize the throwing action using a robotic approach. More specifically, we illustrate  the movement using Python with the help of Pinocchio. The robot model will consist only of the upper body, which includes the hip, the shoulder, the elbow, and the wrist, in 2D, where only the rotation joint is used.
+
+  The work starts with designing a stick-version of the upper body and calculating the distance, the angle of each articulation, creating a "realistic" 2D-version of the throwing action, and finally optimizing it for the longest throwing distance of the projectile. From this project, we hope to have a better simulation of the action of throwing atlatl with the dynamic relation to have further studies about this kind of weapon.
+classoption: a4paper, xcolor = usenames,dvipsnames
+geometry: margin=2.5cm
+bibliography: ref.bib
+output:
+  bookdown::pdf_document2:
+    citation_package: biblatex
+    biblio-style: alphabetic
+    biblatexoptions: [backend=biber, maxbibnames=999]
+    papersize: a4
+    fig_caption: true
+    highlight: tango
+    keep_tex: true
+    number_sections: true
+    pandoc_args: 
+      - "--listings"
+    toc_depth: 3
+    toc: false
+    latex_engine: lualatex
+    includes:
+      in_header: preamble.tex
+---
+
+```{r, chunk, include=F, cache=F}
+knitr::read_chunk(here::here("report", "report.r"))
+```
+
+```{r, init, include=F}
+```
+
+# Introduction
+
+Maria (Historical evidences)
+
+# Preliminary
+
+In the first section, we introduce some general notions and theories that we used for modeling a movement of a robot.
+
+## Trajectory planning
+
+### From human to robot
+
+The movement of a robot is captured as a series of positions, or a trajectory. For example, the modeling of a walking human is shown below.
+
+```{r, human, include=F}
+```
+```{r, human-plot, echo=F, fig.cap="Knee and foot trajectory while walking"}
+g_human
+```
+
+There are two curves, each represents a trajectory of our knee and foot while walking. For a better illustration, we also include an orange line which represents the leg. We could imagine a robot that is walking along the $x$-axis. With these trajectories, the knee and the foot of the robot will produce a human-like walking movement.
+
+### Trajectory interpolation
+
+In the above example, the trajectory could be expressed as a variation of the $cos$ function. However, in reality, the desired trajectory is more complicated. Computing directly that function is not possible. Instead of doing that, we will only supply some positions at certain times, and interpolate the whole trajectory. To ensure a correct movement, two conditions must be satisfied:
+
+- The interpolator must be smooth. Mathematically, we want the interpolator line is continous and its first derivate is also continouse. This ensures that our robot will not perform any change in action too harshly.
+- The monocity of the dataset (positions) being interpolated must be preserved. This keeps the interpolator from generating data that is out of range. (e.g the position of a foot is always greater or equal to $0$).
+
+For clarity, we will illustrate these 2 conditions below.
+
+```{r, inter, include=F}
+```
+
+```{r, smooth-plot, echo=F, fig.cap="Smoothness of linear and cubic spline interpolation method"}
+g_smooth
+```
+
+As in figure \@ref(fig:smooth-plot), the linear method only uses straight lines to connect the points together and has a zigzag pattern. On the other side, the cubic spline method is smooth and derivable. Since the graph of each function is also how our robot move its leg, we prefer the cubic spline method for a smooth movement.
+
+```{r, mono-plot, echo=F, fig.cap="Monocity of cubic spline and pchip interpolation method"}
+g_mono
+```
+
+For the second condition, the figure \@ref(fig:mono-plot) shows clearly that the cubic spline method does not respect the monocity between each pair of points while the pchip method (stands for Piecewise Cubic Hermite Interpolating Polynomial) does. For example, if we consider the interval between $3$ and $4$, we see that the pchip line is monotonically increasing while the cubic spline forms a valley.
+
+The method that satisfy both conditions is PCHIP^[https://en.wikipedia.org/wiki/Monotone_cubic_interpolation] and will be used for modeling our robot.
+
+## Configuration solver
+
+A configuration $q$ is a collection of parameters of a robot and the angle as well as position of each joint of our robot is tied to one unique configuration. We note that $\mathbb{Q}$ is the set of all configurations (configuration space) of each robot, $\mathbb{P}$ is the set of all positions of that robot. In addition, $f: \mathbb{Q} \rightarrow \mathbb{P}$ maps each configuration with its corresponding position, we have $f$ is bijective. Given a trajectory $T$, we want to solve the problem below:
+
+\begin{equation}
+  \text{ For each } t \text{, find } q \in \mathbb{Q} \text{ such that } f(q) = T(t) \label{eq:config-analy}
+\end{equation}
+
+Solving \eqref{eq:config-analy} analytically is generally impossible. Therefore, we transform it to a different optimization problem:
+
+\begin{equation}
+  \text{ For each } t \text{, note } q_{t}^{*} \text{ the solution of } \eqref{eq:config-analy} \text{, find } q \in \mathbb{Q} \text{ such that } \| f(q_{t}^{*}) - f(q) \| \text{ is minimized} \label{eq:config-optim}
+\end{equation}
+
+Solving \eqref{eq:config-optim} is equivalent to find a close approximation of $q_{t}^{*}$. We now only need to define the norm $\| \cdot \|$. Since the position of a robot is specified by the rotation and translation of its components and we might only need to control certain rotations and translations, given $\{p_{1}^{*}, \dots, p_{n}^{*}\}$ the desired positions at time $t$ (either rotations and translations), we define the norm as follow:
+
+\[
+\| f(q_{t}^{*}) - f(q) \| \coloneqq \sqrt{\sum_{i=1}^{n} (p_{i}^{*} - p_{i})^{2}}
+\]
+
+As we do not know the analytical form of $f$ or neither its gradient, we will use BFGS algorithm^[https://en.wikipedia.org/wiki/Broyden–Fletcher–Goldfarb–Shanno_algorithm] to solve \eqref{eq:config-optim}.
+
+## Directed angle
+
+In order to express the translation and rotation easier, we also use directed geometry where anticlockwise angle ($\theta_{+}$) are positive and the reference line is the vertical axis of the current frame.
+
+```{r, angle, include=F}
+```
+
+```{r, angle-plot, echo=F, fig.cap="Directed angle"}
+g_directed_angle
+```
+
+# Modeling
+
+In the second section, we apply previous observations and notions to our problem.
+
+## Robot structure
+
+```{r, robot, include=F}
+```
+
+```{r, initial-model, include=F}
+```
+
+First, the structure of our robot is shown below.
+
+```{r, initial-model-plot, echo=F, fig.cap="Structure of throwing robot"}
+g_inital_robot
+```
+
+This structure models our upper body while throwing the atlatl. We have $5$ rotation joints whose value are $\theta_{i}$ for $i \in \{1, 2, 3, 4, 5\}$.
+
+## Real life observations
+
+In order to plan the trajectory of the robot, it is required to study the movement of an atlatl thrower in real life. The movement in real life can be divided into some stages; we first care about the position of the arm and the body, then the one of the wrist and finally, finishing the movement.
+
+### Arm and body
+
+The core starts to rotate while the upper arm starts to flex at the height of the shoulder. In this way, the hand and the atlatl are moving until they are almost behind the head. The atlatl throughout this remains horizontal. The shoulder flex seems to be small at this point and the wrist must be rotated to keep the dart pointed at the target.
+
+```{r, arm-body-pos, echo=F, fig.cap="Position of arm and body", fig.show="hold", out.width="30%"}
+knitr::include_graphics(here::here("report", "res", "observations", "1.png"))
+knitr::include_graphics(here::here("report", "res", "observations", "2.png"))
+knitr::include_graphics(here::here("report", "res", "observations", "3.png"))
+```
+
+### Wrist
+
+Slightly before the hand reaches the back of the head, the hand and forearm begin to rise. Then as the hand is passing the head, the wrist should snap vigorously, giving the atlatl a vertical position and flicking the dart away. The dart will flex as the point remains aimed to the target, following a straight path. At the same time, the arm is being flexed straight out.
+
+```{r, wrist-pos, echo=F, fig.cap="Position of wrist", fig.show="hold", out.width="30%"}
+knitr::include_graphics(here::here("report", "res", "observations", "4.png"))
+knitr::include_graphics(here::here("report", "res", "observations", "5.png"))
+knitr::include_graphics(here::here("report", "res", "observations", "6.png"))
+```
+
+### Finishing
+
+The dart is higher enough compared to the head when it is just about to leave the atlatl. The vertical position of the atlatl permits the dart to fly away. As the dart is leaving the atlatl, the thrower is leaning slightly forward. The movement finishes in a position where the arm that holds the atlatl crosses the opposite leg.
+
+```{r, finish-pos, echo=F, fig.cap="Finish position", fig.show="hold", out.width="30%"}
+knitr::include_graphics(here::here("report", "res", "observations", "7.png"))
+knitr::include_graphics(here::here("report", "res", "observations", "8.png"))
+```
+
+### The atlatl and the dart
+
+Concerning the movement of the atlatl-dart system, @10.2307/279223 states that when throwing a spear with the unaided hand it is necessary to make the hand travel in a straight line until the spear is released. When the hand nears its maximum outstretched position, the spear is then released. This allows to maintain control of the spear's line and avoid any downward motion. The same thing holds true for a dart that is thrown with the atlatl. Therefore, in addition to these observations above, we also impose another constraint: the distance between P and the ground is constant or the point P moves along a straight line.
+
+```{r, constant-P, echo=F, fig.cap="Atlatl straight line", fig.show="hold", out.width="75%"}
+knitr::include_graphics(
+  here::here("report", "res", "observations", "straight.png")
+)
+```
+
+## Trajectory planning
+
+```{r, trajectory, include=F}
+```
+
+### Hip, shoulder and elbow
+
+From the observations above, we first supply the rotations value of the first $3$ joints: hip, shoulder and elbow to the interpolator and obtain the trajectory below:
+
+```{r, traject-hse, include=F}
+```
+
+```{r, traject-hse-plot, echo=F, fig.cap="Trajectory of hip, shoulder and elbow"}
+g_hse
+```
+
+### Wrist
+
+```{r, wrist-robot, include=F}
+```
+
+For the wrist joint, we want to ensure the constant height as in the previous [section](#the-atlatl-and-the-dart). If we note $\theta_{i}$ the angle with respect to the local frame (as in figure \@ref(fig:initial-model-plot)), $\Theta_{i}$ the angle with respect to the root frame, $l_{i}$ the length of the $i^{th}$ joint / part respectively and $h_{i}$ the distance between the $i^{th}$ joint and ground, we have the following relation:
+
+\begin{equation}
+  h_{k} = \sum_{i = 1}^{k} l_{i} cos(\Theta_{i}) \text{ where } \Theta_{j} = \sum_{i = 1}^{j} \theta_{i} \label{eq:wrist}
+\end{equation}
+
+From \eqref{eq:wrist}, we can easily calculate $\theta_4$ as we already know $h_4$. Below is the trajectory of the wrist joint.
+
+```{r, traject-wrist, include=F}
+```
+
+```{r, traject-wrist-plot, echo=F, fig.cap="Trajectory of the wrist joint"}
+g_wrist
+```
+
+### P
+
+Pham Tuan Kiet
+
+## Result
+
+Vo Van Nghia & Pham Tuan Kiet
+
+# Improvement
+
+Vo Van Nghia & Pham Tuan Kiet
+
+# Conclusion
+
+Vo Van Nghia & Pham Tuan Kiet
+
+\newpage
+
+# References {-}

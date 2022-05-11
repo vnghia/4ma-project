@@ -137,7 +137,7 @@ class ConstantAtlatl(Robot):
 
     def demo(self, speed=1):
         process = self.__construct_angle_process()
-        times = np.arange(0, np.shape(process)[1]) * 1 / speed
+        times = np.cumsum([0, 0.5, 0.3, 4, 0.1, 2, 5]) * 1 / speed
         interp = [None] * np.shape(process)[0]
 
         for i, joint_process in enumerate(process):

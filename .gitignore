@@ -645,4 +645,4 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
-.local
+.local*
