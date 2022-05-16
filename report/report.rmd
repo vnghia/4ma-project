@@ -221,13 +221,69 @@ g_wrist
 
 ### P
 
-Pham Tuan Kiet
+As advancing on with the modelisation, there is still an angle that had not been demonstrated.
+That is the angle between the dart and the atlatl, called $\theta_5$. $\theta_5$ is related to a passive joint, which means it is not controlled freely. As we need to demonstrate the $\theta_5$, a relation must be settled based on given variable of the schema.
+
+***Add Image***
+
+As the movement of the tip of the atlatl is a straight line, a force $\vec{F}$ parallel with the movement is applied at the end of the dart. Therefore, the directed angle $a_5 = \displaystyle\sum_{i=1}^{5} \theta_i$. Furthermore, because one of the dart's tips is stuck with the tip of the atlatl, the dart will always be dragged downward, which means $a_5$ decreases. We can therefore assume that the angle an is constant when an appropriate force is applied. Which means:
+$$\theta_5 + \theta_4+\theta_3+\theta_2+\theta_1 = a$$
+or:
+$$\theta_5 = a - (\theta_4+\theta_3+\theta_2+\theta_1)$$
 
 ## Result
 
 Vo Van Nghia & Pham Tuan Kiet
 
 # Improvement
+
+## Optimisation for longest traject
+
+The movement of the robot is expected to have the longest traject of the tip of the atlatl in order to maximise the velocity, which leads to an optimised movement. The optimisation is precised with the following contraints:
+
+$$
+\begin{cases}
+-\pi/6 < \theta_1 < \pi/4\\
+-\pi/4 < \theta_2 < \pi/2\\
+-3*\pi/4 < \theta_3 < 0\\
+-\pi/2 < \theta_4 < 0
+\end{cases}
+$$
+
+Calling the relative angle with the line perpendicular to the ground of a segment $AB$ with length $l_i$ $a_i$. We have:
+\begin{equation}
+a_i = \displaystyle\sum_{j<i} \theta_j
+\end{equation}
+and:
+\begin{equation}
+\overrightarrow{A_{i}B_{i}} = l_i * cos(a_i)
+\end{equation}
+with $\overrightarrow{{A_i}{B_i}}$ the relative distance in z-axis between the two points.
+
+Hence, the relative height of the tip of the atlatl (which is constant because it is assumed to move parallelly with the x-axis) is:
+$$constant = \displaystyle\sum_{i=1}^{4} \overrightarrow{A_{i}B_{i}}$$
+
+The movement is predicted to stop at $q_f$ when:
+$$
+\begin{cases}
+\tag{*}
+\theta_1 = \pi/4\\
+\theta_2 = \pi/4\\
+\theta_5 = \pi/2
+\end{cases}
+$$
+
+As $\theta_5 = \pi/2$, we can deduct that $a_4 = -a$ with $a$ is the throwing angle. Therefore:
+$$a_3 = arccos((constant - l_1*sqrt(2)/2 - l_4*cos(-a))/l_3)$$
+
+Called $q_0 = (\alpha_1,\alpha_2,\alpha_3,\alpha_4)$ the initial configuration $(f(q_0) = T(0))$. At $q_0$, we have:
+$$-(\pi/2 + a) = a_4 = \displaystyle\sum_{i=1}^{4} {\alpha_i}$$
+
+The position of the point P in x-axis at $q_0$ is:
+$$P_x = \displaystyle\sum_{i=1}^{4} \sin(a_i) * l_i$$
+Hence, the problem turns into an optimisation problem:
+$$
+min_{x \in D} P_x, \tab \displaystyle\sum_{i=1}^{4} l_i * \cos(\displaystyle\sum_{j=1}^{i} \theta_j)$$
 
 Vo Van Nghia & Pham Tuan Kiet
 
